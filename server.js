@@ -16,10 +16,30 @@ app.use(express.json());
 app.use(cors());
 app.use(express.static(path.join(__dirname, "public")));
 
-// ─── MongoDB Connection ────────────────────────────────────────
-mongoose.connect(process.env.MONGO_URI)
-    .then(() => console.log("MongoDB Connected"))
-    .catch(err => console.log(err));
+// ─── MongoDB Connection (Serverless-safe) ──────────────────────
+let isConnected = false;
+
+async function connectDB() {
+    if (isConnected) return;
+    try {
+        await mongoose.connect(process.env.MONGO_URI);
+        isConnected = true;
+        console.log("MongoDB Connected");
+    } catch (err) {
+        console.log("MongoDB connection error:", err);
+        throw err;
+    }
+}
+
+// Ensure DB is connected before every request
+app.use(async (req, res, next) => {
+    try {
+        await connectDB();
+        next();
+    } catch (err) {
+        res.status(500).json({ error: "Database connection failed" });
+    }
+});
 
 // ─── CREATE — POST /addUser ────────────────────────────────────
 app.post("/addUser", async (req, res) => {
