@@ -21,6 +21,9 @@ let isConnected = false;
 
 async function connectDB() {
     if (isConnected) return;
+    if (!process.env.MONGO_URI) {
+        throw new Error("MONGO_URI environment variable is not set");
+    }
     try {
         await mongoose.connect(process.env.MONGO_URI);
         isConnected = true;
@@ -31,13 +34,23 @@ async function connectDB() {
     }
 }
 
+// Debug route (temporary — remove after testing)
+app.get("/debug", (req, res) => {
+    res.json({
+        hasMongoURI: !!process.env.MONGO_URI,
+        mongoURIprefix: process.env.MONGO_URI ? process.env.MONGO_URI.substring(0, 20) + "..." : "NOT SET",
+        isVercel: !!process.env.VERCEL,
+        nodeEnv: process.env.NODE_ENV
+    });
+});
+
 // Ensure DB is connected before every request
 app.use(async (req, res, next) => {
     try {
         await connectDB();
         next();
     } catch (err) {
-        res.status(500).json({ error: "Database connection failed" });
+        res.status(500).json({ error: "Database connection failed", detail: err.message });
     }
 });
 
