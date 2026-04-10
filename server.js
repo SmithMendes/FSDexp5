@@ -1,5 +1,7 @@
 const dns = require("dns");
-dns.setServers(["8.8.8.8", "8.8.4.4"]);
+if (!process.env.VERCEL) {
+    dns.setServers(["8.8.8.8", "8.8.4.4"]);
+}
 
 const path = require("path");
 const express = require("express");
